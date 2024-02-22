@@ -34,10 +34,23 @@
                 <button onclick="getDashboard()">Get Dashboard</button>
             </div>    
         </main>
+        <div style="display: flex; gap: 5px">
+         
+                <button id="pricesButton" style="display: none;" onclick="getPrices()">Prices</button>
+                <button id="settingsButton"  style="display: none;" onclick="getSettings()">Settings</button>
+   
+        </div>
+        
+        
 
     </div>
 
     <script>
+
+        function handleTokenExpire() {
+            localStorage.removeItem('jwt');
+            window.location.href = '/';
+        }
 
         function login() {
             const data = {
@@ -69,7 +82,49 @@
                 if (res && res.data && res.data.success) {
                     document.querySelector('h1.row').innerHTML = 'Dashboard';
                     document.querySelector('main').innerHTML = res.data.myContent;
+                    document.getElementById('pricesButton').style.display = 'block'; // Show the prices button
+                    document.getElementById('settingsButton').style.display = 'block'; // Show the settings button
+                    history.pushState({}, '', '/dashboard'); // Update URL to '/dashboard'
+              
                 }
+            });
+        }
+
+        function getPrices() {
+            const token = localStorage.getItem('jwt');
+            axios.get('/api/prices', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then(res => {
+                if (res && res.data && res.data.success) {
+                    document.querySelector('h1.row').innerHTML = 'Prices'; // Update the heading to "Prices"
+                    document.querySelector('main').innerHTML = res.data.myContent; // Display the content
+                    history.pushState({}, '', '/prices'); // Update URL to '/prices'
+              
+                }
+            }).catch(error => {
+                console.error('Error fetching prices:', error);
+                // Handle error here
+            });
+        }
+
+        function getSettings() {
+            const token = localStorage.getItem('jwt');
+            axios.get('/api/settings', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then(res => {
+                if (res && res.data && res.data.success) {
+                    document.querySelector('h1.row').innerHTML = 'Settings'; // Update the heading to "Settings"
+                    document.querySelector('main').innerHTML = res.data.myContent; // Display the content
+                    history.pushState({}, '', '/settings'); // Update URL to '/settings'
+            
+                }
+            }).catch(error => {
+                console.error('Error fetching settings:', error);
+                // Handle error here
             });
         }
 

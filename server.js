@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
-
 const jwt = require('jsonwebtoken');
+const { expressjwt } = require("express-jwt");
 const bodyParser = require('body-parser');
 const path = require('path');
 
@@ -13,10 +13,12 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 const PORT = 3000;
 const secretKey = 'My super secret key';
-
+const jwtMW = expressjwt({
+    secret: secretKey,
+    algorithms: ['HS256']
+});
 let users = [
     {
         id: 1,
@@ -29,55 +31,31 @@ let users = [
         password: '987'
     }
 ];
-
-// Custom middleware for JWT verification
-const jwtVerify = (req, res, next) => {
-    // Extract token from Authorization header
-    const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-
-    if (token) {
-        // Verify token
-        jwt.verify(token, secretKey, (err, decoded) => {
-            if (err) {
-                // Token verification failed
-                return res.status(401).json({ success: false, err: 'Failed to authenticate token.' });
-            } else {
-                // Token verified, attach user information to request object
-                req.decoded = decoded;
-                next(); // Move to the next middleware
-            }
-        });
-    } else {
-        // No token provided, return error
-        return res.status(403).json({ success: false, err: 'No token provided.' });
-    }
-};
-
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-
+    let userFound = false;
     for (let user of users) {
-        if (username == user.username && password == user.password) {
-            let token = jwt.sign({ id: user.id, username: user.username }, secretKey, { expiresIn: '7d' });
+        if (username === user.username && password === user.password) {
+            let token = jwt.sign({ id: user.id, username: user.username}, secretKey, { expiresIn: '180000'});
             res.json({
                 success: true,
                 err: null,
                 token
             });
-            return; // Exit the loop once user is found
+            userFound = true;
+            break;
         }
     }
-
-    // If loop finishes without finding a user, return unauthorized
-    res.status(401).json({
-        success: false,
-        token: null,
-        err: 'Username or Password is incorrect'
-    });
+    if (!userFound) {
+        res.status(401).json({
+            success: false,
+            token: null,
+            err: 'Username or Password is incorrect'
+        });
+    }
 });
 
-// Routes that require authentication
-app.get('/api/dashboard', jwtVerify, (req, res) => {
+app.get('/api/dashboard', jwtMW, (req, res) => {
     console.log(req);
     res.json({
         success: true,
@@ -85,7 +63,7 @@ app.get('/api/dashboard', jwtVerify, (req, res) => {
     });
 });
 
-app.get('/api/prices', jwtVerify, (req, res) => {
+app.get('/api/prices', jwtMW, (req, res) => {
     console.log(req);
     res.json({
         success: true,
@@ -93,12 +71,17 @@ app.get('/api/prices', jwtVerify, (req, res) => {
     });
 });
 
-// Route for serving index.html
+app.get('/api/settings', jwtMW, (req, res) => {
+    console.log(req);
+    res.json({
+        success: true,
+        myContent: 'This is the protected settings page sssshhhhhh.'
+    });
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
-
-// Error handling middleware
 app.use(function (err, req, res, next) {
     if (err.name === 'UnauthorizedError') {
         res.status(401).json({
@@ -106,11 +89,11 @@ app.use(function (err, req, res, next) {
             officialError: err,
             err: 'Username or Password is incorrect 2'
         });
-    } else {
+    }
+    else{
         next(err);
     }
 });
-
 app.listen(PORT, () => {
     console.log(`Serving on port ${PORT}`);
 });
