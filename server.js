@@ -36,7 +36,7 @@ app.post('/api/login', (req, res) => {
     let userFound = false;
     for (let user of users) {
         if (username === user.username && password === user.password) {
-            let token = jwt.sign({ id: user.id, username: user.username}, secretKey, { expiresIn: '180000'});
+            let token = jwt.sign({ id: user.id, username: user.username}, secretKey, { expiresIn: '5000'});
             res.json({
                 success: true,
                 err: null,

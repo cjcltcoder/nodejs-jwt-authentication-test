@@ -46,10 +46,30 @@
     </div>
 
     <script>
-
         function handleTokenExpire() {
             localStorage.removeItem('jwt');
             window.location.href = '/';
+        }
+
+        function checkTokenExpiration() {
+            const token = localStorage.getItem('jwt');
+            if (token) {
+                const decodedToken = parseJwt(token);
+                const currentTime = Math.floor(Date.now() / 1000);
+                if (decodedToken.exp < currentTime) {
+                    handleTokenExpire(); // Token expired re-route back to root
+                }
+            }
+        }
+
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            return JSON.parse(jsonPayload);
         }
 
         function login() {
@@ -72,6 +92,7 @@
         }
 
         function getDashboard() {
+            checkTokenExpiration(); // Check token expiration before making API call
             const token = localStorage.getItem('jwt');
             axios.get('/api/dashboard', {
                 headers: {
@@ -91,6 +112,7 @@
         }
 
         function getPrices() {
+            checkTokenExpiration(); // Check token expiration before making API call
             const token = localStorage.getItem('jwt');
             axios.get('/api/prices', {
                 headers: {
@@ -105,11 +127,11 @@
                 }
             }).catch(error => {
                 console.error('Error fetching prices:', error);
-                // Handle error here
             });
         }
 
         function getSettings() {
+            checkTokenExpiration(); // Check token expiration before making API call
             const token = localStorage.getItem('jwt');
             axios.get('/api/settings', {
                 headers: {
@@ -124,7 +146,6 @@
                 }
             }).catch(error => {
                 console.error('Error fetching settings:', error);
-                // Handle error here
             });
         }
 
